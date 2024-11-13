@@ -1,0 +1,124 @@
+# Dades descarregades de: https://analisi.transparenciacatalunya.cat/ca/Medi-Ambient/Quantitat-d-aigua-als-embassaments-de-les-Conques-/gn9e-3qhr/about_data
+
+data <- read.csv("dades\\Aigua_Cat.csv", header = TRUE, sep = ",")
+
+
+# GRÀFICS ----
+
+## Waffle Chart ----
+
+### Preparo dades ----
+
+library(tidyverse)
+
+head(data$dia)
+
+data$any <- format(as.Date(data$dia, format = "%Y-%m-%dT%H:%M:%S"), "%Y")
+
+head(data$any)
+
+unique(data$any)
+
+data$any <- as.numeric(data$any)
+
+data$anys5 <- as.factor(paste0(floor(data$any / 5) * 5, "-", floor(data$any / 5) * 5 + 4))
+
+
+data$decada <- as.factor(paste0(floor(data$any / 10) * 10, "s"))
+
+unique(data$decada)
+
+unique(data$anys5)
+
+
+
+### Faig el gràfic ----
+
+
+#install.packages("waffle")
+
+
+library(waffle)
+library(ggplot2)
+
+conteo_anys <- data %>%
+  count(anys5)
+
+total_count <- sum(conteo_anys$n)
+conteo_anys$proporcion <- conteo_anys$n / total_count
+
+vector_anys <- setNames(round(conteo_anys$proporcion, 5) * 100, conteo_anys$anys5)
+
+waffle(vector_anys, rows = 10, title = "Proporció d'entrades de dades al df per cada 5 anys" ,legend_pos = "bottom")
+
+
+## Chord diagram ----
+
+#install.packages("circlize")
+
+library(circlize)
+
+data_filtered <- data[data$dia >= as.Date("2020-01-01"), ]
+
+
+data_filtered$dia <- as.Date(data_filtered$dia, format="%Y-%m-%dT%H:%M:%OS")
+
+data_filtered$any <- format(data_filtered$dia, "%Y")
+
+data_filtered$estaci_factor <- as.factor(data_filtered$estaci)
+
+data_filtered$estaci <- gsub("Embassament de ", "", data_filtered$estaci)
+data_filtered$estaci <- gsub("\\(.*?\\)", "", data_filtered$estaci)  
+data_filtered$estaci <- gsub("\\s+$", "", data_filtered$estaci)  
+
+
+unique(data_filtered$estaci)
+
+head(data_filtered[c("dia", "estaci", "any")])
+
+conteo_estaci_interval <- table(data_filtered$estaci, data_filtered$any)
+
+conteo_estaci_interval
+
+
+# Crear el Chord Diagram
+chordDiagram(conteo_estaci_interval, 
+             transparency = 0.5, 
+             annotationTrack = c("name", "grid"))
+
+
+
+## Area Chart ----
+
+library(lubridate)
+
+data_filtered2 <- data[data$dia >= as.Date("2020-01-01"), ]
+
+data_filtered2$dia2 <- ymd_hms(data_filtered2$dia)
+
+head(data_filtered2$dia2)
+
+
+data_filtered2$estaci_factor <- as.factor(data_filtered2$estaci)
+
+data_filtered2$estaci <- gsub("Embassament de ", "", data_filtered2$estaci) 
+data_filtered2$estaci <- gsub("\\(.*?\\)", "", data_filtered2$estaci)  
+data_filtered2$estaci <- gsub("\\s+$", "", data_filtered2$estaci)  
+
+
+unique(data_filtered$estaci)
+
+
+data_suma <- data_filtered2 %>%
+  group_by(dia2, estaci) %>%
+  summarise(nivell_absolut_suma = sum(nivell_absolut, na.rm = TRUE))
+
+head(data_suma, 50)
+
+ggplot(data_suma, aes(x = dia2, y = nivell_absolut_suma, fill = estaci)) +
+  geom_area(alpha = 0.5) +
+  labs(title = "Nivell absolut diari per cada embassament de 2020-2025", x = "Any", y = "Nivell absolut diari") +
+  scale_x_datetime(labels = scales::date_format("%Y"), breaks = "1 year") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3")
+
