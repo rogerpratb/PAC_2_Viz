@@ -106,7 +106,7 @@ data_filtered2$estaci <- gsub("\\(.*?\\)", "", data_filtered2$estaci)
 data_filtered2$estaci <- gsub("\\s+$", "", data_filtered2$estaci)  
 
 
-unique(data_filtered$estaci)
+unique(data_filtered2$estaci)
 
 
 data_suma <- data_filtered2 %>%
